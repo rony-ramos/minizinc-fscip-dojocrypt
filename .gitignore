@@ -1,0 +1,45 @@
+# =============================================================================
+# .gitignore — minizinc-fscip-dojocrypt
+# =============================================================================
+
+# Build artifacts
+build/
+*.o
+*.so
+*.a
+*.dylib
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+
+# Micromamba / Conda environments
+.micromamba/
+micromamba/
+
+# Downloaded archives
+*.tgz
+*.tar.gz
+*.tar.bz2
+*.zip
+
+# Temporary files
+/tmp/
+*.log
+*.set
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+TROUBLESHOOTING.md
+ARCHITECTURE.md
