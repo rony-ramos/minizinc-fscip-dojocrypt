@@ -274,6 +274,9 @@ BASHRC="$HOME/.bashrc"
 
 # Function to cleanly remove the block if it exists
 remove_block() {
+    # Backup .bashrc before modifying
+    cp "$BASHRC" "${BASHRC}.bak.$(date +%s)"
+    
     # Use awk to filter out the block reliably (handles multi-line blocks correctly)
     awk -v start="$BASHRC_MARKER_START" -v end="$BASHRC_MARKER_END" '
     $0 == start { skip = 1; next }
