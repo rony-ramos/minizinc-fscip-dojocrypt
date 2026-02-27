@@ -272,14 +272,19 @@ phase "Phase 6/7 — Shell Environment"
 
 BASHRC="$HOME/.bashrc"
 
-# Remove old block if present (idempotent re-runs)
+# Function to cleanly remove the block if it exists
+remove_block() {
+    # Use awk to filter out the block reliably (handles multi-line blocks correctly)
+    awk -v start="$BASHRC_MARKER_START" -v end="$BASHRC_MARKER_END" '
+    $0 == start { skip = 1; next }
+    $0 == end { skip = 0; next }
+    !skip { print }
+    ' "$BASHRC" > "${BASHRC}.tmp" && mv "${BASHRC}.tmp" "$BASHRC"
+}
+
 if grep -qF "$BASHRC_MARKER_START" "$BASHRC" 2>/dev/null; then
     info "Removing previous fscip-env block from ~/.bashrc..."
-    # Use a tempfile because sed -i fails if directory permissions are weird
-    grep -v -e "$BASHRC_MARKER_START" -e "$BASHRC_MARKER_END" \
-         -e "export SCIPOPTDIR=" -e "export MAMBA_ROOT_PREFIX=" \
-         -e "export MZN_SOLVER_PATH=" \
-         "$BASHRC" > "${BASHRC}.tmp" && mv "${BASHRC}.tmp" "$BASHRC"
+    remove_block
 fi
 
 info "Appending environment block to ~/.bashrc..."
