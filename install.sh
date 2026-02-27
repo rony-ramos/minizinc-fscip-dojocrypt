@@ -111,6 +111,13 @@ export PATH="$MAMBA_ENV_PREFIX/bin:$LOCAL_PREFIX/bin:$PATH"
 export CMAKE_PREFIX_PATH="$MAMBA_ENV_PREFIX"
 export LD_LIBRARY_PATH="$MAMBA_ENV_PREFIX/lib:$LOCAL_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 
+# Fix for "Could not find compiler set in environment variable CC: x86_64-conda-linux-gnu-cc"
+# Conda packages often set CC/CXX to cross-compilers that we didn't install.
+# We want to use the system compiler (/usr/bin/gcc).
+unset CC CXX
+export CC="$(command -v gcc)"
+export CXX="$(command -v g++)"
+
 # =============================================================================
 # Phase 3 — Download & Compile SCIP Optimization Suite
 # =============================================================================
