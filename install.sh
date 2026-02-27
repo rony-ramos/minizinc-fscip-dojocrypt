@@ -14,7 +14,8 @@ set -euo pipefail
 # =============================================================================
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-LOCAL_PREFIX="$HOME/.local"
+# Use a local directory inside the repo to avoid permission issues in $HOME
+LOCAL_PREFIX="${REPO_ROOT}/.local"
 MAMBA_ROOT="$LOCAL_PREFIX/micromamba"
 MAMBA_BIN="$MAMBA_ROOT/bin/micromamba"
 MAMBA_ENV_NAME="scip-build"
@@ -46,7 +47,15 @@ phase() { echo ""; echo -e "${GREEN}========== $* ==========${NC}"; }
 
 # Create directory skeleton
 mkdir -p "$LOCAL_PREFIX"/{bin,lib,include,share}
-mkdir -p "$HOME/.minizinc/solvers"
+
+# Ensure MiniZinc user config path is accessible
+MZN_USER_CONFIG_DIR="$HOME/.minizinc/solvers"
+if [ ! -w "$HOME/.minizinc" ] && [ ! -w "$HOME" ]; then
+    # Fallback if HOME is not writable: configure locally 
+    # (MiniZinc env var MZN_SOLVER_PATH will handle this)
+    MZN_USER_CONFIG_DIR="$LOCAL_PREFIX/minizinc_config"
+fi
+mkdir -p "$MZN_USER_CONFIG_DIR"
 
 # =============================================================================
 # Phase 1 — Install Micromamba (user-space package manager)
@@ -228,7 +237,7 @@ info "MiniZinc symlinks created in $LOCAL_PREFIX/bin/"
 # =============================================================================
 phase "Phase 5/7 — Solver Registration"
 
-MSC_FILE="$HOME/.minizinc/solvers/fscip.msc"
+MSC_FILE="$MZN_USER_CONFIG_DIR/fscip.msc"
 
 # Write the .msc solver config (user-level, no root needed)
 cat <<EOF > "$MSC_FILE"
@@ -259,7 +268,11 @@ BASHRC="$HOME/.bashrc"
 # Remove old block if present (idempotent re-runs)
 if grep -qF "$BASHRC_MARKER_START" "$BASHRC" 2>/dev/null; then
     info "Removing previous fscip-env block from ~/.bashrc..."
-    sed -i "/$BASHRC_MARKER_START/,/$BASHRC_MARKER_END/d" "$BASHRC"
+    # Use a tempfile because sed -i fails if directory permissions are weird
+    grep -v -e "$BASHRC_MARKER_START" -e "$BASHRC_MARKER_END" \
+         -e "export SCIPOPTDIR=" -e "export MAMBA_ROOT_PREFIX=" \
+         -e "export MZN_SOLVER_PATH=" \
+         "$BASHRC" > "${BASHRC}.tmp" && mv "${BASHRC}.tmp" "$BASHRC"
 fi
 
 info "Appending environment block to ~/.bashrc..."
@@ -270,6 +283,7 @@ export SCIPOPTDIR="$LOCAL_PREFIX"
 export MAMBA_ROOT_PREFIX="$MAMBA_ROOT"
 export PATH="$LOCAL_PREFIX/bin:$MZN_INSTALL_DIR/bin:\$PATH"
 export LD_LIBRARY_PATH="$LOCAL_PREFIX/lib:$MZN_INSTALL_DIR/lib:\${LD_LIBRARY_PATH:-}"
+export MZN_SOLVER_PATH="$MZN_USER_CONFIG_DIR:\${MZN_SOLVER_PATH:-}"
 $BASHRC_MARKER_END
 EOF
 

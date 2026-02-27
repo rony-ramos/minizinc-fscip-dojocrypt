@@ -10,11 +10,15 @@ set -uo pipefail
 
 # ---- Resolve script directory (for finding fscip-normalize.py) ----
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." &>/dev/null && pwd)"
+LOCAL_PREFIX="${REPO_ROOT}/.local"
 
 # ---- Locate fscip binary dynamically ----
-# Priority: $HOME/.local/bin → PATH → /usr/local/bin (Docker fallback)
+# Priority: Repo-local bin → $HOME/.local/bin → PATH
 FSCIP_BIN=""
-if [ -x "$HOME/.local/bin/fscip" ]; then
+if [ -x "$LOCAL_PREFIX/bin/fscip" ]; then
+    FSCIP_BIN="$LOCAL_PREFIX/bin/fscip"
+elif [ -x "$HOME/.local/bin/fscip" ]; then
     FSCIP_BIN="$HOME/.local/bin/fscip"
 elif command -v fscip &>/dev/null; then
     FSCIP_BIN="$(command -v fscip)"

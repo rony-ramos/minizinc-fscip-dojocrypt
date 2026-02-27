@@ -13,7 +13,9 @@ This repository provides a single-command installer that builds and integrates a
 | **MiniZinc** | 2.9.4 | Constraint modeling language & compiler (pre-built bundle) |
 | **Micromamba** | latest | User-space package manager for build dependencies |
 
-After installation, MiniZinc natively discovers FiberSCIP as `org.scip.fscip` — no manual configuration needed.
+After installation, MiniZinc natively discovers FiberSCIP has `org.scip.fscip` — no manual configuration needed.
+
+> **Note on Paths:** This installer places all binaries and libraries inside the repository directory (`.local/`) to avoid permission issues in restricted `$HOME` environments.
 
 ## Quick Start
 
@@ -142,9 +144,10 @@ org.chuffed.chuffed ...
 ## File Layout After Installation
 
 ```
-$HOME/.local/
-├── bin/
-│   ├── fscip              # FiberSCIP binary
+[Repo Root]
+├── .local/
+│   ├── bin/
+│   │   ├── fscip              # FiberSCIP binary
 │   ├── scip               # SCIP interactive shell
 │   ├── minizinc → ...     # Symlink to MiniZinc bundle
 │   ├── fzn-gecode → ...
