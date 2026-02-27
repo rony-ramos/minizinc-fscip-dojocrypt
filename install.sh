@@ -163,7 +163,7 @@ else
     # --- Build ---
     NPROC=$(nproc 2>/dev/null || echo 2)
     info "Building with $NPROC parallel jobs (this takes 20-40 min)..."
-    make -j"$NPROC" || fail "SCIP build failed."
+    make || fail "SCIP build failed."
 
     # --- Install ---
     info "Installing to $LOCAL_PREFIX..."
