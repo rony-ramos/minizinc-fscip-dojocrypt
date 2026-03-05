@@ -83,6 +83,22 @@ phase "Phase 2/7 — Build Dependencies (conda-forge)"
 if "$MAMBA_BIN" env list 2>/dev/null | grep -q "$MAMBA_ENV_NAME"; then
     info "Environment '$MAMBA_ENV_NAME' already exists — skipping creation."
 else
+    # Check if a modern system g++ exists (>= 7.0 for better standard support)
+    COMPILER_PKGS=""
+    if command -v g++ >/dev/null 2>&1; then
+        SYS_GCC_VER=$(g++ -dumpversion | cut -d. -f1)
+        if [ "$SYS_GCC_VER" -ge 7 ] 2>/dev/null; then
+            info "Found system g++ (version $SYS_GCC_VER). Skipping conda compiler installation."
+            COMPILER_PKGS=""
+        else
+            info "System g++ is too old ($SYS_GCC_VER). Will install isolated conda compilers."
+            COMPILER_PKGS="gcc_linux-64 gxx_linux-64"
+        fi
+    else
+        info "No system g++ found. Will install isolated conda compilers."
+        COMPILER_PKGS="gcc_linux-64 gxx_linux-64"
+    fi
+
     info "Creating micromamba environment with build toolchain..."
     "$MAMBA_BIN" create -n "$MAMBA_ENV_NAME" -y -c conda-forge \
         cmake \
@@ -95,7 +111,8 @@ else
         zlib \
         readline \
         bison \
-        flex
+        flex \
+        $COMPILER_PKGS
     info "Environment '$MAMBA_ENV_NAME' created."
 fi
 
@@ -111,12 +128,17 @@ export PATH="$MAMBA_ENV_PREFIX/bin:$LOCAL_PREFIX/bin:$PATH"
 export CMAKE_PREFIX_PATH="$MAMBA_ENV_PREFIX"
 export LD_LIBRARY_PATH="$MAMBA_ENV_PREFIX/lib:$LOCAL_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 
-# Fix for "Could not find compiler set in environment variable CC: x86_64-conda-linux-gnu-cc"
-# Conda packages often set CC/CXX to cross-compilers that we didn't install.
-# We want to use the system compiler (/usr/bin/gcc).
-unset CC CXX
-export CC="$(command -v gcc)"
-export CXX="$(command -v g++)"
+# Fix for "Could not find compiler set in environment variable CC"
+# Conda-forge's tbb forces a newer ABI. If we are falling back to the system compiler,
+# explicitely use system gcc/g++. Otherwise, unset them to let cmake pick conda's.
+if [ -n "${SYS_GCC_VER:-}" ] && [ "$SYS_GCC_VER" -ge 7 ] 2>/dev/null; then
+    unset CC CXX
+    export CC="$(command -v gcc)"
+    export CXX="$(command -v g++)"
+else
+    # Let CMake find conda's gcc from PATH
+    unset CC CXX
+fi
 
 # =============================================================================
 # Phase 3 — Download & Compile SCIP Optimization Suite
